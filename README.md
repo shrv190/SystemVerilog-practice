@@ -1,6 +1,4 @@
 # Learning SystemVerilog
-Timeline
-
 | Folder                                    | Timeline                   | Status    |
 | ----------------------------------------- | -------------------------- | --------- |
 | 00 sv practice phase-1                    | May'26                     | Completed ✅ |
