@@ -17,6 +17,56 @@
 // Learnt / What's optimised code
 // Introduced a "sub_cont" input which can be used to handle addition and subtraction using only one module
 
+
+module alu (
+    input [3:0] in1, in2,
+    input start, clk, rst, restart,
+    input [1:0] sel,
+    output reg [9:0] out,
+    output reg [3:0] remcarry,
+    output reg done
+    );
+    wire donemul, donediv;
+    wire [3:0] outw_addsub;
+    wire [9:0] outw_mul;
+    wire carryw;
+    wire [3:0] quot, remw;
+
+    wire sub_cont = (sel == 2'b01);
+    four_bit_fulladdersubtractor addersubt(outw_addsub, carryw, in1, in2, sub_cont);
+
+    boothmul multiplier(in1, in2, start, clk, rst, restart, outw_mul, donemul);
+    non_restoring_divider divider(in1, in2, start, clk, rst, restart, quot, remw, donediv);
+
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            out <= 0;
+            remcarry <= 0;
+        end else if (start) begin
+            case (sel)
+                2'b00: begin
+                    out <= {5'b0,carryw,outw_addsub};
+                    remcarry <= carryw;
+                end
+                2'b01: begin
+                    out <= {6'b0,outw_addsub};
+                    remcarry <= 1'bx;
+                end
+                2'b10: begin
+                    out <= outw_mul;
+                    done <= donemul;
+                    remcarry <= 1'bx;
+                end
+                2'b11: begin
+                    out <= {6'b0,quot};
+                    remcarry <= remw;
+                    done <= donediv;
+                end
+            endcase
+        end
+    end
+endmodule
+
 // One bit adder using NAND Gates
 module one_bit_adder (
     output sum, carry,
@@ -238,54 +288,5 @@ module non_restoring_divider (
         end
         default: state <= s_init;
         endcase
-    end
-endmodule
-
-module alu (
-    input [3:0] in1, in2,
-    input start, clk, rst, restart,
-    input [1:0] sel,
-    output reg [9:0] out,
-    output reg [3:0] remcarry,
-    output reg done
-    );
-    wire donemul, donediv;
-    wire [3:0] outw_addsub;
-    wire [9:0] outw_mul;
-    wire carryw;
-    wire [3:0] quot, remw;
-
-    wire sub_cont = (sel == 2'b01);
-    four_bit_fulladdersubtractor addersubt(outw_addsub, carryw, in1, in2, sub_cont);
-
-    boothmul multiplier(in1, in2, start, clk, rst, restart, outw_mul, donemul);
-    non_restoring_divider divider(in1, in2, start, clk, rst, restart, quot, remw, donediv);
-
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            out <= 0;
-            remcarry <= 0;
-        end else if (start) begin
-            case (sel)
-                2'b00: begin
-                    out <= {5'b0,carryw,outw_addsub};
-                    remcarry <= carryw;
-                end
-                2'b01: begin
-                    out <= {6'b0,outw_addsub};
-                    remcarry <= 1'bx;
-                end
-                2'b10: begin
-                    out <= outw_mul;
-                    done <= donemul;
-                    remcarry <= 1'bx;
-                end
-                2'b11: begin
-                    out <= {6'b0,quot};
-                    remcarry <= remw;
-                    done <= donediv;
-                end
-            endcase
-        end
     end
 endmodule
